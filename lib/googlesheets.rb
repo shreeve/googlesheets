@@ -162,94 +162,75 @@ helpers do
     save(area, rows, log)
   end
 
+  def touch_cell(cell, func=nil, *args, **opts, &code)
+    return yield(cell) if block_given?
+    case func
+    when nil, 'string' then cell
+    when 'id'          then cell.present? ? cell.to_i : nil
+    when 'money'       then cell.gsub(/[ $,]+/,'')
+    when 'to_decimal'
+      prec = 2
+      if cell[/\A\s*\$?\s*([-+])?\s*\$?\s*([-+])?\s*(\d[,\d]*)?(\.\d*)?\s*\z/]
+        sign = "#{$1}#{$2}".squeeze.include?("-") ? "-" : ""
+        left = $3.blank? ? "0" : $3.delete(",")
+        decs = $4.blank? ? nil : $4
+        "%.*f" % [prec, "#{sign}#{left}#{decs}".to_f]
+      else
+        ""
+      end
+    when 'to_phone'
+      case cell
+        when /^1?([2-9]\d\d)(\d{3})(\d{4})$/ then "(#{$1}) #{$2}-#{$3}"
+        else ""
+      end
+    when 'to_yyyymmdd'
+      case cell
+        when /^((?:19|20)\d{2})(\d{2})(\d{2})$/      then "%s%s%s"       % [$1, $2, $3          ] # YYYYMMDD
+        when /^(\d{2})(\d{2})((?:19|20)\d{2})$/      then "%s%s%s"       % [$3, $1, $2          ] # MMDDYYYY
+        when /^(\d{1,2})([-\/.])(\d{1,2})\2(\d{4})$/ then "%s%02d%02d"   % [$4, $1.to_i, $3.to_i] # M/D/Y
+        when /^(\d{4})([-\/.])(\d{1,2})\2(\d{1,2})$/ then "%s%02d%02d"   % [$1, $3.to_i, $4.to_i] # Y/M/D
+        when /^(\d{1,2})([-\/.])(\d{1,2})\2(\d{2})$/
+          year = $4.to_i
+          year += year < (Time.now.year % 100 + 5) ? 2000 : 1900
+          "%04d%02d%02d" % [year, $1.to_i, $3.to_i] # M/D/Y
+        else ""
+      end
+    when 'tune'
+      o = {}; opts.each {|e| o[e]=true}
+      s = cell
+      s = s.downcase.gsub(/\s\s+/, ' ').strip.gsub(/(?<=^| |[\d[:punct:]])([[[:alpha:]]])/i) { $1.upcase } # general case
+      s.gsub!(/\b([a-z])\. ?([bcdfghjklmnpqrstvwxyz])\.?(?=\W|$)/i) { "#$1#$2".upcase } # initials (should this be :name only?)
+      s.gsub!(/\b([a-z](?:[a-z&&[^aeiouy]]{1,4}))\b/i) { $1.upcase } # uppercase apparent acronyms
+      s.gsub!(/\b([djs]r|us|acct|[ai]nn?|apps|ed|erb|esq|grp|in[cj]|of[cf]|st|up)\.?(?=\W|$)/i) { $1.capitalize } # force camel-case
+      s.gsub!(/(^|(?<=\d ))?\b(and|at|as|of|the|in|on|or|for|to|by|de l[ao]s?|del?|(el-)|el|las)($)?\b/i) { ($1 || $3 || $4) ? $2.downcase.capitalize : $2.downcase } # prepositions
+      s.gsub!(/\b(mc|mac(?=d[ao][a-k,m-z][a-z]|[fgmpw])|[dol]')([a-z])/i) { $1.capitalize + $2.capitalize } # mixed case (Irish)
+      s.gsub!(/\b(ahn|an[gh]|al|art[sz]?|ash|e[dnv]|echt|elms|emms|eng|epps|essl|i[mp]|mrs?|ms|ng|ock|o[hm]|ong|orr|orth|ost|ott|oz|sng|tsz|u[br]|ung)\b/i) { $1.capitalize } # if o[:name] # capitalize
+      s.gsub!(/(?<=^| |[[:punct:]])(apt?s?|arch|ave?|bldg|blvd|cr?t|co?mn|drv?|elm|end|f[lt]|hts?|ln|old|pkw?y|plc?|prk|pt|r[dm]|spc|s[qt]r?|srt|street|[nesw])\.?(?=\W|$)/i) { $1.capitalize } # if o[:address] # road features
+      s.gsub!(/(1st|2nd|3rd|[\d]th|de l[ao]s)\b/i) { $1.downcase } # ordinal numbers
+      s.gsub!(/(?<=^|\d |\b[nesw] |\b[ns][ew] )(d?el|las?|los)\b/i) { $1.capitalize } # uppercase (Spanish)
+      s.gsub!(/\b(ca|dba|fbo|ihop|mri|ucla|usa|vru|[ns][ew]|i{1,3}v?)\b/i) { $1.upcase } # force uppercase
+      s.gsub!(/\b([-@.\w]+\.(?:com|net|io|org))\b/i) { $1.downcase } # domain names, email (a little bastardized...)
+      s.gsub!(/# /, '#') # collapse spaces following a number sign
+      s.sub!(/[.,#]+$/, '') # nuke any trailing period, comma, or hash signs
+      s.sub!(/\bP\.? ?O\.? ?Box/i, 'PO Box') # PO Boxes
+      s
+    else
+      if cell.respond_to?(func)
+        cell.send(func, *args)
+      else
+        warn "dude... you gave me the unknown func #{func.inspect}"
+        nil
+      end
+    end
+  end
+
   def update(area, op=nil, **opts, &code)
     rows = read area
-    data = rows.map {|cols| cols.map {|cell| touch(cell, op, **opts, &code)}}
+    data = rows.map {|cols| cols.map {|cell| touch_cell(cell, op, **opts, &code)}}
     save area, data
   end
 
-  def touch(cell, func=nil, *args, **opts, &code)
-    if block_given?
-      yield cell
-    else
-      case func
-      when nil  then cell
-      when 'jr' then cell + " Junior!"
-      else
-        if cell.respond_to?(func)
-          cell.send(func, *args)
-        else
-          warn "dude... you gave me the unknown func #{func.inspect}"
-          nil
-        end
-      end
-    end
-  end
-
-  def touch_cell(cell, func=nil, *args, **opts, &code)
-    if block_given?
-      yield cell
-    else
-      case func
-      when nil then cell
-      when 'to_decimal'
-        prec = 2
-        if cell[/\A\s*\$?\s*([-+])?\s*\$?\s*([-+])?\s*(\d[,\d]*)?(\.\d*)?\s*\z/]
-          sign = "#{$1}#{$2}".squeeze.include?("-") ? "-" : ""
-          left = $3.blank? ? "0" : $3.delete(",")
-          decs = $4.blank? ? nil : $4
-          "%.*f" % [prec, "#{sign}#{left}#{decs}".to_f]
-        else
-          ""
-        end
-      when 'to_phone'
-        case cell
-          when /^1?([2-9]\d\d)(\d{3})(\d{4})$/ then "(#{$1}) #{$2}-#{$3}"
-          else ""
-        end
-      when 'to_yyyymmdd'
-        case cell
-          when /^((?:19|20)\d{2})(\d{2})(\d{2})$/      then "%s%s%s"       % [$1, $2, $3          ] # YYYYMMDD
-          when /^(\d{2})(\d{2})((?:19|20)\d{2})$/      then "%s%s%s"       % [$3, $1, $2          ] # MMDDYYYY
-          when /^(\d{1,2})([-\/.])(\d{1,2})\2(\d{4})$/ then "%s%02d%02d"   % [$4, $1.to_i, $3.to_i] # M/D/Y
-          when /^(\d{4})([-\/.])(\d{1,2})\2(\d{1,2})$/ then "%s%02d%02d"   % [$1, $3.to_i, $4.to_i] # Y/M/D
-          when /^(\d{1,2})([-\/.])(\d{1,2})\2(\d{2})$/
-            year = $4.to_i
-            year += year < (Time.now.year % 100 + 5) ? 2000 : 1900
-            "%04d%02d%02d" % [year, $1.to_i, $3.to_i] # M/D/Y
-          else ""
-        end
-      when 'tune'
-        o = {}; opts.each {|e| o[e]=true}
-        s = cell
-        s = s.downcase.gsub(/\s\s+/, ' ').strip.gsub(/(?<=^| |[\d[:punct:]])([[[:alpha:]]])/i) { $1.upcase } # general case
-        s.gsub!(/\b([a-z])\. ?([bcdfghjklmnpqrstvwxyz])\.?(?=\W|$)/i) { "#$1#$2".upcase } # initials (should this be :name only?)
-        s.gsub!(/\b([a-z](?:[a-z&&[^aeiouy]]{1,4}))\b/i) { $1.upcase } # uppercase apparent acronyms
-        s.gsub!(/\b([djs]r|us|acct|[ai]nn?|apps|ed|erb|esq|grp|in[cj]|of[cf]|st|up)\.?(?=\W|$)/i) { $1.capitalize } # force camel-case
-        s.gsub!(/(^|(?<=\d ))?\b(and|at|as|of|the|in|on|or|for|to|by|de l[ao]s?|del?|(el-)|el|las)($)?\b/i) { ($1 || $3 || $4) ? $2.downcase.capitalize : $2.downcase } # prepositions
-        s.gsub!(/\b(mc|mac(?=d[ao][a-k,m-z][a-z]|[fgmpw])|[dol]')([a-z])/i) { $1.capitalize + $2.capitalize } # mixed case (Irish)
-        s.gsub!(/\b(ahn|an[gh]|al|art[sz]?|ash|e[dnv]|echt|elms|emms|eng|epps|essl|i[mp]|mrs?|ms|ng|ock|o[hm]|ong|orr|orth|ost|ott|oz|sng|tsz|u[br]|ung)\b/i) { $1.capitalize } # if o[:name] # capitalize
-        s.gsub!(/(?<=^| |[[:punct:]])(apt?s?|arch|ave?|bldg|blvd|cr?t|co?mn|drv?|elm|end|f[lt]|hts?|ln|old|pkw?y|plc?|prk|pt|r[dm]|spc|s[qt]r?|srt|street|[nesw])\.?(?=\W|$)/i) { $1.capitalize } # if o[:address] # road features
-        s.gsub!(/(1st|2nd|3rd|[\d]th|de l[ao]s)\b/i) { $1.downcase } # ordinal numbers
-        s.gsub!(/(?<=^|\d |\b[nesw] |\b[ns][ew] )(d?el|las?|los)\b/i) { $1.capitalize } # uppercase (Spanish)
-        s.gsub!(/\b(ca|dba|fbo|ihop|mri|ucla|usa|vru|[ns][ew]|i{1,3}v?)\b/i) { $1.upcase } # force uppercase
-        s.gsub!(/\b([-@.\w]+\.(?:com|net|io|org))\b/i) { $1.downcase } # domain names, email (a little bastardized...)
-        s.gsub!(/# /, '#') # collapse spaces following a number sign
-        s.sub!(/[.,#]+$/, '') # nuke any trailing period, comma, or hash signs
-        s.sub!(/\bP\.? ?O\.? ?Box/i, 'PO Box') # PO Boxes
-        s
-      else
-        if cell.respond_to?(func)
-          cell.send(func, *args)
-        else
-          warn "dude... you gave me the unknown func #{func.inspect}"
-          nil
-        end
-      end
-    end
-  end
-
-  def clean_sheet(area)
+  def sheet_clean(area)
     rows = sheet_read(area) rescue {}
 
     todo = Hash[<<~end.scan(/^\s*(.*?)  +(.*?)(?:\s*#.*)?$/)]
