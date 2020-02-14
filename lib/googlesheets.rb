@@ -344,6 +344,16 @@ def report1(area)
   recs.rows.each_with_index do |cols, i|
     cols.insert 8, nil
   end
+  # recs.rows.each_with_index do |cols, i|
+  #   r = i + 9
+  #   cols.push(
+  #     *<<~end.split("\n")
+  #       =H#{r}-G#{r}
+  #       =if(H#{r}<>0,(F#{r}-H#{r})/H#{r},0)
+  #       =if(I#{r}<>0,I#{r}/G#{r},0)
+  #     end
+  #   )
+  # end
 
   # update sheet
   rows = save area, recs.rows
