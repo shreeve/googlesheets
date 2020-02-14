@@ -1,2 +1,3 @@
 # googlesheets
-A Ruby gem for Google Sheets API
+
+Ruby gem for Google Sheets API
