@@ -303,9 +303,9 @@ __END__
     end
   end
 
-  # def update(area, op=nil, **opts, &code)
+  # def update(area, func=nil, *args, **opts, &code)
   #   rows = read area
-  #   data = rows.map {|cols| cols.map {|cell| touch_cell(cell, op, **opts, &code)}}
+  #   data = rows.map {|cols| cols.map {|cell| touch_cell(cell, func, *args, **opts, &code)}}
   #   save area, data
   # end
 
