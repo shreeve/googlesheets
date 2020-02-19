@@ -88,7 +88,7 @@ class GoogleSheets
   end
 
   def sheets
-    @sheets ||= @api.get_spreadsheet(@ssid).sheets.map {|item| item.properties }
+    @sheets ||= api.get_spreadsheet(@ssid).sheets.map {|item| item.properties }
   end
 
   def sheets!
@@ -131,7 +131,7 @@ class GoogleSheets
       },
       fields: 'tab_color',
     })
-    resp = @api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
+    resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
     true
   end
 
@@ -140,7 +140,7 @@ class GoogleSheets
     reqs = []
     reqs.push(clear_basic_filter: { sheet_id: range[:sheet_id] })
     reqs.push(set_basic_filter: { filter: { range: range } })
-    resp = @api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
+    resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
     true
   end
 
@@ -158,22 +158,22 @@ class GoogleSheets
       },
       fields: 'user_entered_format.number_format',
     })
-    resp = @api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
+    resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
     true
   end
 
   def sheet_clear(area)
-    @api.clear_values(@ssid, area)
+    api.clear_values(@ssid, area)
   end
 
   def sheet_read(area)
-    @api.get_spreadsheet_values(@ssid, area).values
+    api.get_spreadsheet_values(@ssid, area).values
   end
 
   def sheet_save(area, rows, log=false)
     area.sub!(/^(#\d+)(?=!)/) {|num| sheet_name(num)}
     gasv = Google::Apis::SheetsV4::ValueRange.new(range: area, values: rows)
-    done = @api.update_spreadsheet_value(@ssid, area, gasv, value_input_option: "USER_ENTERED")
+    done = api.update_spreadsheet_value(@ssid, area, gasv, value_input_option: "USER_ENTERED")
     puts "#{done.updated_cells} cells updated." if log
     done.updated_cells
   end
@@ -189,7 +189,7 @@ p g.sheet_list
 p g.sheet_name("#1")
 p g.sheet_id("#1")
 p g.sheets
-p g.sheet_color "#1", "#0f0"
+p g.sheet_color "#1", "#369"
 p g.sheet_filter "#1!C15:e26"
 
 __END__
