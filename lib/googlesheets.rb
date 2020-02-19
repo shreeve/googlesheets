@@ -60,7 +60,7 @@ class GoogleSheets
     { red: r, green: g, blue: b }
   end
 
-  def biject(x) # a:1, z:26, aa:27, az:52, ba:53, aaa:703
+  def biject(x) # a=1, z=26, aa=27, az=52, ba=53, aaa=703
     case x
     when String
       x.each_char.inject(0) {|n,c| (n * 26) + (c.ord & 31) }
