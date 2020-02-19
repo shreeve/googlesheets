@@ -185,10 +185,10 @@ end
 
 g = GoogleSheets.new('1OQ4FoV8gSxCsCRJULP4eFV2rKLXNe8CnSMEN4IJ55jE')
 
-p g.sheet_list
-p g.sheet_name("#1")
-p g.sheet_id("#1")
 p g.sheets
+p g.sheet_list
+p g.sheet_id "#1"
+p g.sheet_name "#1"
 p g.sheet_color "#1", "#369"
 p g.sheet_filter "#1!C15:e26"
 
