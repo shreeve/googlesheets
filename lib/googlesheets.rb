@@ -135,6 +135,15 @@ class GoogleSheets
     true
   end
 
+  def sheet_filter(area)
+    range = range(area)
+    reqs = []
+    reqs.push(clear_basic_filter: { sheet_id: range[:sheet_id] })
+    reqs.push(set_basic_filter: { filter: { range: range } })
+    resp = @api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
+    true
+  end
+
   def sheet_format(area, pattern)
     reqs = []
     reqs.push(repeat_cell: {
@@ -171,15 +180,6 @@ class GoogleSheets
 
   def sheet_save!(area, rows)
     sheet_save(area, rows, true)
-  end
-
-  def sheet_filter(area)
-    range = range(area)
-    reqs = []
-    reqs.push(clear_basic_filter: { sheet_id: range[:sheet_id] })
-    reqs.push(set_basic_filter: { filter: { range: range } })
-    resp = @api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
-    true
   end
 end
 
