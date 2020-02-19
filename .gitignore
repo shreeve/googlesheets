@@ -3,3 +3,5 @@
 *.so
 Gemfile.lock
 tmp/
+lib/credentials.json
+lib/token.yaml
