@@ -183,8 +183,7 @@ class GoogleSheets
   end
 end
 
-g = GoogleSheets.new('1OQ4FoV8gSxCsCRJULP4eFV2rKLXNe8CnSMEN4IJ55jE')
-
+p g = GoogleSheets.new('1OQ4FoV8gSxCsCRJULP4eFV2rKLXNe8CnSMEN4IJ55jE')
 p g.sheets
 p g.sheet_list
 p g.sheet_id "#1"
