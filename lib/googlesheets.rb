@@ -70,6 +70,19 @@ class GoogleSheets
     end
   end
 
+  def filter_criteria(hash)
+    hash.inject({}) do |h, (k,v)|
+      l = Array(v)
+      h[biject(k.to_s) - 1] = {
+        condition: {
+          type: "TEXT_EQ",
+          values: l.map {|e| { user_entered_value: e} },
+        }
+      }
+      h
+    end
+  end
+
   def range(area)
     sh, rc = area.split('!', 2); rc, sh = sh, nil if sh.nil?
     as, ae = rc.split(':', 2); ae ||= as
@@ -132,11 +145,12 @@ class GoogleSheets
     true
   end
 
-  def sheet_filter(area)
+  def sheet_filter(area, want=nil)
     range = range(area)
+    criteria = filter_criteria(want) if want
     reqs = []
     reqs.push(clear_basic_filter: { sheet_id: range[:sheet_id] })
-    reqs.push(set_basic_filter: { filter: { range: range } })
+    reqs.push(set_basic_filter: { filter: { range: range, criteria: criteria}.compact })
     resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
     true
   end
