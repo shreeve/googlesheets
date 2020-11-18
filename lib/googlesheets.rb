@@ -12,7 +12,7 @@ class GoogleSheets
   attr_accessor :api
 
   def initialize(ssid, **opts)
-    @ssid = ssid
+    @ssid = ssid =~ /^https?:/ ? ssid.split('/')[5] : ssid
 
     @json = opts[:credentials] || 'credentials.json'
     @yaml = opts[:token      ] || 'token.yaml'
