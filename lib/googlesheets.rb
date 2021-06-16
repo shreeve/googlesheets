@@ -134,6 +134,22 @@ class GoogleSheets
     end
   end
 
+  def sheet_rename(pick, name=nil)
+    shid = sheet_id(pick)
+    name ||= yield(sheet_name(shid)) if block_given?
+
+    reqs = []
+    reqs.push(update_sheet_properties: {
+      properties: {
+        sheet_id: shid,
+        title: name,
+      },
+      fields: 'title',
+    })
+    resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
+    true
+  end
+
   def sheet_color(pick, color=nil) # NOTE: ignores alpha
     reqs = []
     reqs.push(update_sheet_properties: {
