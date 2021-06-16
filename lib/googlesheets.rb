@@ -8,6 +8,8 @@ module Enumerable
   end
 end
 
+# https://googleapis.dev/ruby/google-api-client/latest/Google/Apis/SheetsV4/Request.html
+
 class GoogleSheets
   attr_accessor :api
 
