@@ -134,6 +134,10 @@ class GoogleSheets
     end
   end
 
+  def resolve_sheet(area)
+    area.sub(/^(#\d+)(?=!)/) {|num| sheet_name(num)}
+  end
+
   def sheet_rename(pick, name=nil)
     shid = sheet_id(pick)
     name ||= yield(sheet_name(shid)) if block_given?
@@ -164,6 +168,7 @@ class GoogleSheets
   end
 
   def sheet_filter(area, want=nil)
+    area = resolve_sheet(area)
     range = range(area)
     criteria = filter_criteria(want) if want
     reqs = []
@@ -174,6 +179,7 @@ class GoogleSheets
   end
 
   def sheet_format(area, pattern)
+    area = resolve_sheet(area)
     reqs = []
     reqs.push(repeat_cell: {
       range: range(area),
@@ -192,15 +198,17 @@ class GoogleSheets
   end
 
   def sheet_clear(area)
+    area = resolve_sheet(area)
     api.clear_values(@ssid, area)
   end
 
   def sheet_read(area)
+    area = resolve_sheet(area)
     api.get_spreadsheet_values(@ssid, area).values
   end
 
   def sheet_save(area, rows, log=false)
-    area.sub!(/^(#\d+)(?=!)/) {|num| sheet_name(num)}
+    area = resolve_sheet(area)
     gasv = Google::Apis::SheetsV4::ValueRange.new(range: area, values: rows)
     done = api.update_spreadsheet_value(@ssid, area, gasv, value_input_option: "USER_ENTERED")
     puts "#{done.updated_cells} cells updated." if log

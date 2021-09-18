@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name        = "googlesheets"
-  s.version     = "0.2.2"
+  s.version     = "0.2.3"
   s.author      = "Steve Shreeve"
   s.email       = "steve.shreeve@gmail.com"
   s.summary     = "Ruby gem for Google Sheets"
