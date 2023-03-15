@@ -18,13 +18,14 @@ end
 # https://googleapis.dev/ruby/google-api-client/latest/Google/Apis/SheetsV4/Request.html
 
 class GoogleSheets
-  VERSION = "0.5.0"
+  VERSION = "0.5.1"
 
   attr_accessor :api
 
   def initialize(ssid, **opts)
     @ssid = ssid =~ /^https?:/ ? ssid.split("/")[5] : ssid # spreadsheet id
-    @wsid = ssid[/(?<=#gid=)(\d+)$/] && $1.to_i # default worksheet id
+    @wsid = ssid =~ /(?<=#gid=)(\d+)(?:!([a-z\d:]+))?$/i ? $1.to_i : "#1" # worksheet id
+    @rect = $2 ? $2.sub(/(?<=\D):/, "1:") : "A:ZZ"
 
     @json = opts[:credentials] || "credentials.json"
     @yaml = opts[:token      ] || "token.yaml"
@@ -137,10 +138,10 @@ class GoogleSheets
   end
 
   def sheet_name(obj=nil)
-    case obj ||= @wsid || "#1"
+    case obj ||= @wsid
       when /^#(\d+)$/ then sheets[$1.to_i - 1].title
+      when "", 0, nil then sheets.first.title
       when Integer    then sheets.first_result {|item| item.title if item.sheet_id == obj }
-      when "", nil     then sheets.first.title
       else obj
     end
   end
@@ -157,7 +158,8 @@ class GoogleSheets
     else
       wsid = sheet_name(area)
     end
-    "#{wsid}!#{rect || 'A:ZZ'}"
+    rect = rect ? rect.sub(/(?<=\D):/, "1:") : @rect
+    "#{wsid}!#{rect}"
   end
 
   def sheet_rename(pick, name=nil)
