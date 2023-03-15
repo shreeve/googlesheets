@@ -2,6 +2,13 @@ require "google/apis/sheets_v4"
 require "googleauth"
 require "googleauth/stores/file_token_store"
 
+class Object
+  def blank?
+    respond_to?(:empty?) or return !self
+    empty? or respond_to?(:strip) && strip.empty?
+  end
+end
+
 module Enumerable
   def first_result
     block_given? ? each {|item| result = (yield item) and return result} && nil : find {|item| item}
@@ -11,13 +18,16 @@ end
 # https://googleapis.dev/ruby/google-api-client/latest/Google/Apis/SheetsV4/Request.html
 
 class GoogleSheets
+  VERSION = "0.5.0"
+
   attr_accessor :api
 
   def initialize(ssid, **opts)
-    @ssid = ssid =~ /^https?:/ ? ssid.split('/')[5] : ssid
+    @ssid = ssid =~ /^https?:/ ? ssid.split("/")[5] : ssid # spreadsheet id
+    @wsid = ssid[/(?<=#gid=)(\d+)$/] && $1.to_i # default worksheet id
 
-    @json = opts[:credentials] || 'credentials.json'
-    @yaml = opts[:token      ] || 'token.yaml'
+    @json = opts[:credentials] || "credentials.json"
+    @yaml = opts[:token      ] || "token.yaml"
 
     if opts[:debug] == true
       $stdout.sync = true
@@ -35,8 +45,8 @@ class GoogleSheets
     idno = Google::Auth::ClientId.from_file(@json)
     repo = Google::Auth::Stores::FileTokenStore.new(file: @yaml)
     auth = Google::Auth::UserAuthorizer.new(idno, Google::Apis::SheetsV4::AUTH_SPREADSHEETS, repo)
-    oobs = 'urn:ietf:wg:oauth:2.0:oob'
-    user = 'default'
+    oobs = "urn:ietf:wg:oauth:2.0:oob"
+    user = "default"
     info = auth.get_credentials(user) || begin
       href = auth.get_authorization_url(base_url: oobs)
       puts "Open the following URL and paste the code here:\n" + href
@@ -86,8 +96,8 @@ class GoogleSheets
   end
 
   def range(area)
-    sh, rc = area.split('!', 2); rc, sh = sh, nil if sh.nil?
-    as, ae = rc.split(':', 2); ae ||= as
+    sh, rc = area.split("!", 2); rc, sh = sh, nil if sh.nil?
+    as, ae = rc.split(":", 2); ae ||= as
     cs, rs = as.split(/(?=\d)/, 2); cs = biject(cs) - 1; rs = rs.to_i - 1
     ce, re = ae.split(/(?=\d)/, 2); ce = biject(ce) - 1; re = re.to_i - 1
     {
@@ -126,16 +136,28 @@ class GoogleSheets
     end
   end
 
-  def sheet_name(obj)
-    case obj
+  def sheet_name(obj=nil)
+    case obj ||= @wsid || "#1"
       when /^#(\d+)$/ then sheets[$1.to_i - 1].title
-      when Integer    then sheets.first_result {|item| item.title if item.sheet_id == obj}
+      when Integer    then sheets.first_result {|item| item.title if item.sheet_id == obj }
+      when "", nil     then sheets.first.title
       else obj
     end
   end
 
-  def resolve_sheet(area)
-    area.sub(/^(#\d+)(?=!)/) {|num| sheet_name(num)}
+  def resolve_area(area)
+    if area.blank?
+      wsid = sheet_name
+    elsif area =~ /!/
+      wsid = sheet_name($`)
+      rect = $'
+    elsif area =~ /:/ or area =~ /^[a-z]{1,3}\d+$/i
+      wsid = sheet_name
+      rect = area
+    else
+      wsid = sheet_name(area)
+    end
+    "#{wsid}!#{rect || 'A:ZZ'}"
   end
 
   def sheet_rename(pick, name=nil)
@@ -148,7 +170,7 @@ class GoogleSheets
         sheet_id: shid,
         title: name,
       },
-      fields: 'title',
+      fields: "title",
     })
     resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
     true
@@ -161,14 +183,14 @@ class GoogleSheets
         sheet_id: sheet_id(pick),
         tab_color: hex2rgb(color),
       },
-      fields: 'tab_color',
+      fields: "tab_color",
     })
     resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
     true
   end
 
   def sheet_filter(area, want=nil)
-    area = resolve_sheet(area)
+    area = resolve_area(area)
     range = range(area)
     criteria = filter_criteria(want) if want
     reqs = []
@@ -179,7 +201,7 @@ class GoogleSheets
   end
 
   def sheet_format(area, pattern)
-    area = resolve_sheet(area)
+    area = resolve_area(area)
     reqs = []
     reqs.push(repeat_cell: {
       range: range(area),
@@ -191,24 +213,24 @@ class GoogleSheets
           },
         },
       },
-      fields: 'user_entered_format.number_format',
+      fields: "user_entered_format.number_format",
     })
     resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
     true
   end
 
   def sheet_clear(area)
-    area = resolve_sheet(area)
+    area = resolve_area(area)
     api.clear_values(@ssid, area)
   end
 
-  def sheet_read(area)
-    area = resolve_sheet(area)
+  def sheet_read(area=nil)
+    area = resolve_area(area)
     api.get_spreadsheet_values(@ssid, area).values
   end
 
   def sheet_save(area, rows, log=false)
-    area = resolve_sheet(area)
+    area = resolve_area(area)
     gasv = Google::Apis::SheetsV4::ValueRange.new(range: area, values: rows)
     done = api.update_spreadsheet_value(@ssid, area, gasv, value_input_option: "USER_ENTERED")
     puts "#{done.updated_cells} cells updated." if log
