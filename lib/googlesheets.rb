@@ -190,8 +190,8 @@ class GoogleSheets
 
   def sheet_id(obj)
     case obj
-      when /^#(\d+)$/ then sheets[$1.to_i - 1].sheet_id
-      when Integer    then obj
+      when /^#(\d+)(?:!?|$)/ then sheets[$1.to_i - 1].sheet_id
+      when Integer           then obj
       else sheets.find {|item| item.title == obj}&.sheet_id
     end
   end
@@ -204,39 +204,6 @@ class GoogleSheets
         color: rgb2hex(item.tab_color),
       }.compact
     end
-  end
-
-  def sheet_id(obj)
-    case obj
-      when /^#(\d+)$/ then sheets[$1.to_i - 1].sheet_id
-      when Integer    then obj
-      else sheets.first_result {|item| item.sheet_id if item.title == obj}
-    end
-  end
-
-  def sheet_name(obj=nil)
-    case obj ||= @wsid
-      when /^#(\d+)$/ then sheets[$1.to_i - 1].title
-      when "", 0, nil then sheets.first.title
-      when Integer    then sheets.first_result {|item| item.title if item.sheet_id == obj }
-      else obj
-    end
-  end
-
-  def resolve_area(area)
-    if area.blank?
-      wsid = sheet_name
-    elsif area =~ /!/
-      wsid = sheet_name($`)
-      rect = $'
-    elsif area =~ /:/ or area =~ /^[a-z]{1,3}\d+$/i
-      wsid = sheet_name
-      rect = area
-    else
-      wsid = sheet_name(area)
-    end
-    rect = rect ? rect.sub(/(?<=\D):/, "1:") : @rect
-    "#{wsid}!#{rect}"
   end
 
   def sheet_rename(pick, name=nil)
@@ -253,54 +220,6 @@ class GoogleSheets
     })
     resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
     true
-  end
-
-  def sheet_color(pick, color=nil) # NOTE: ignores alpha
-    reqs = []
-    reqs.push(update_sheet_properties: {
-      properties: {
-        sheet_id: sheet_id(pick),
-        tab_color: hex2rgb(color),
-      },
-      fields: "tab_color",
-    })
-    resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
-    true
-  end
-
-  def sheet_filter(area, want=nil)
-    area = resolve_area(area)
-    range = range(area)
-    criteria = filter_criteria(want) if want
-    reqs = []
-    reqs.push(clear_basic_filter: { sheet_id: range[:sheet_id] })
-    reqs.push(set_basic_filter: { filter: { range: range, criteria: criteria}.compact })
-    resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
-    true
-  end
-
-  def sheet_format(area, pattern)
-    area = resolve_area(area)
-    reqs = []
-    reqs.push(repeat_cell: {
-      range: range(area),
-      cell: {
-        user_entered_format: {
-          number_format: {
-            type: "NUMBER",
-            pattern: pattern,
-          },
-        },
-      },
-      fields: "user_entered_format.number_format",
-    })
-    resp = api.batch_update_spreadsheet(@ssid, { requests: reqs }, {})
-    true
-  end
-
-  def sheet_clear(area)
-    area = resolve_area(area)
-    api.clear_values(@ssid, area)
   end
 
   def sheet_read(area=nil)
