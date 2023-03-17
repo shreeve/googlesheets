@@ -1,11 +1,9 @@
 #!/usr/bin/env ruby
 
-version="0.0.1"
-
 STDOUT.sync = true
 
 begin
-  require "censive" 
+  require "censive"
 rescue LoadError
   abort "#{File.basename($0)} needs another gem, run 'gem install censive'"
 end
@@ -18,15 +16,29 @@ trap("INT" ) { abort "\n" }
 OptionParser.new.instance_eval do
   @banner  = "usage: #{program_name} [options] <url>"
 
+  on "-f", "--fill"                   , "Fill each row with as many cells as the first row"
   on "-h", "--help"                   , "Show help and command usage" do Kernel.abort to_s; end
-  on "-v", "--version"                , "Show version number" do Kernel.abort "#{program_name} #{version}"; end
+  on "-t", "--trim"                   , "Trim leading and trailing whitespace"
+  on "-v", "--version"                , "Show version number" do Kernel.abort "#{program_name} #{GoogleSheets::VERSION}"; end
 
   self
 end.parse!(into: opts={}) rescue abort($!.message)
 
+fill = opts[:fill]
 link = ARGV.shift or abort("no url provided")
+trim = opts[:trim]
 
 goog = GoogleSheets.new(link)
 rows = goog.sheet_read
+rows.each {|cols| cols.map(&:strip!) } if trim
+
+if fill and need = rows[0]&.size
+  rows.each_with_index do |cols, i|
+    if (size = cols.size) != need
+      abort "row #{i + 1} has more columns than the header row" if size > need
+      cols.concat(Array.new(need - size, ""))
+    end
+  end
+end
 
 Censive.writer {|csv| rows.each {|row| csv << row }}
