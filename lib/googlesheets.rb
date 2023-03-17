@@ -12,7 +12,7 @@ require "googleauth"
 require "googleauth/stores/file_token_store"
 
 class GoogleSheets
-  VERSION = "0.6.0"
+  VERSION = "0.6.1"
 
   attr_accessor :api
 
