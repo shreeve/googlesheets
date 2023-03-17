@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+
+version="0.0.1"
+
+STDOUT.sync = true
+
+begin
+  require "censive" 
+rescue LoadError
+  abort "#{File.basename($0)} needs another gem, run 'gem install censive'"
+end
+
+require "googlesheets"
+require "optparse"
+
+trap("INT" ) { abort "\n" }
+
+OptionParser.new.instance_eval do
+  @banner  = "usage: #{program_name} [options] <url>"
+
+  on "-h", "--help"                   , "Show help and command usage" do Kernel.abort to_s; end
+  on "-v", "--version"                , "Show version number" do Kernel.abort "#{program_name} #{version}"; end
+
+  self
+end.parse!(into: opts={}) rescue abort($!.message)
+
+link = ARGV.shift or abort("no url provided")
+
+goog = GoogleSheets.new(link)
+rows = goog.sheet_read
+
+Censive.writer {|csv| rows.each {|row| csv << row }}

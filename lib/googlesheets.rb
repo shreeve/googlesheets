@@ -11,8 +11,15 @@ require "google/apis/sheets_v4"
 require "googleauth"
 require "googleauth/stores/file_token_store"
 
+class Object
+  def blank?
+    respond_to?(:empty?) or return !self
+    empty? or respond_to?(:strip) && strip.empty?
+  end unless defined? blank?
+end
+
 class GoogleSheets
-  VERSION = "0.6.1"
+  VERSION = "0.6.3"
 
   attr_accessor :api
 
