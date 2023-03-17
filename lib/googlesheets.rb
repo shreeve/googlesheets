@@ -145,11 +145,11 @@ class GoogleSheets
     api.clear_values(@ssid, area)
   end
 
-  def sheet_color(pick, color=nil) # NOTE: ignores alpha
+  def sheet_color(curr, color=nil) # NOTE: ignores alpha
     reqs = []
     reqs.push(update_sheet_properties: {
       properties: {
-        sheet_id: sheet_id(pick),
+        sheet_id: sheet_id(curr),
         tab_color: hex2rgb(color),
       },
       fields: "tab_color",
@@ -158,10 +158,10 @@ class GoogleSheets
     true
   end
 
-  def sheet_filter(area, want=nil)
+  def sheet_filter(area, filt=nil)
     area = resolve_area(area)
     range = range(area)
-    criteria = filter_criteria(want) if want
+    criteria = filter_criteria(filt) if filt
     reqs = []
     reqs.push(clear_basic_filter: { sheet_id: range[:sheet_id] })
     reqs.push(set_basic_filter: { filter: { range: range, criteria: criteria}.compact })
@@ -206,8 +206,8 @@ class GoogleSheets
     end
   end
 
-  def sheet_rename(pick, name=nil)
-    shid = sheet_id(pick)
+  def sheet_rename(curr, name=nil)
+    shid = sheet_id(curr)
     name ||= yield(sheet_name(shid)) if block_given?
 
     reqs = []
