@@ -19,7 +19,7 @@ class Object
 end
 
 class GoogleSheets
-  VERSION = "0.6.4"
+  VERSION = "0.7.0"
 
   attr_accessor :api
 
@@ -30,6 +30,13 @@ class GoogleSheets
 
     @json = opts[:credentials] || "credentials.json"
     @yaml = opts[:token      ] || "token.yaml"
+
+    if !File.exist?(@json)
+      base = File.expand_path(File.join(ENV["HOME"], ".google"))
+      abort "unable to file Google API credentials" unless File.exist?(base)
+      @json = File.join(base, @json)
+      @yaml = File.join(base, @yaml)
+    end
 
     if opts[:debug] == true
       $stdout.sync = true
