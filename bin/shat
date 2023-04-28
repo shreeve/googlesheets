@@ -21,6 +21,9 @@ OptionParser.new.instance_eval do
   on "-t", "--trim"                   , "Trim leading and trailing whitespace"
   on "-v", "--version"                , "Show version number" do Kernel.abort "#{program_name} #{GoogleSheets::VERSION}"; end
 
+  on       "--csv"    , "Output comma separated data (default)"
+  on       "--psv"    , "Output pipe separated data"
+  on       "--tsv"    , "Output tab separated data"
 
   Kernel.abort to_s if ARGV.empty?
   self
@@ -29,6 +32,15 @@ end.parse!(into: opts={}) rescue abort($!.message)
 fill = opts[:fill]
 link = ARGV.shift or abort("no url provided")
 trim = opts[:trim]
+
+# handle separators
+xcsv = opts[:csv ]
+xpsv = opts[:psv ]
+xtsv = opts[:tsv ]
+hits = [xcsv, xpsv, xtsv].compact.size
+hits > 1 and abort "only one of csv, psv, or tsv allowed"
+xcsv = true if hits.zero?
+seps = xtsv ? "\t" : xpsv ? "|" : ","
 
 goog = GoogleSheets.new(link)
 rows = goog.sheet_read
@@ -43,4 +55,4 @@ if fill and need = rows[0]&.size
   end
 end
 
-Censive.writer {|csv| rows.each {|row| csv << row }}
+Censive.writer(seps: seps) {|csv| rows.each {|row| csv << row }}
