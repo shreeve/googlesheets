@@ -21,6 +21,8 @@ OptionParser.new.instance_eval do
   on "-t", "--trim"                   , "Trim leading and trailing whitespace"
   on "-v", "--version"                , "Show version number" do Kernel.abort "#{program_name} #{GoogleSheets::VERSION}"; end
 
+
+  Kernel.abort to_s if ARGV.empty?
   self
 end.parse!(into: opts={}) rescue abort($!.message)
 
