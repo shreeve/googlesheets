@@ -18,8 +18,8 @@ OptionParser.new.instance_eval do
 
   on "-f", "--fill"                   , "Fill each row with as many cells as the first row"
   on "-h", "--help"                   , "Show help and command usage" do Kernel.abort to_s; end
-  on "-t", "--trim"                   , "Trim leading and trailing whitespace"
   on "-v", "--version"                , "Show version number" do Kernel.abort "#{program_name} #{GoogleSheets::VERSION}"; end
+  on "-s", "--strip"  , "Strip leading and trailing whitespace"
 
   on       "--csv"    , "Output comma separated data (default)"
   on       "--psv"    , "Output pipe separated data"
