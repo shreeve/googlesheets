@@ -55,4 +55,4 @@ if fill and need = rows[0]&.size
   end
 end
 
-Censive.writer(sep: seps) {|csv| rows.each {|row| csv << row }}
+Censive.write {|csv| rows.each {|row| csv << row }}

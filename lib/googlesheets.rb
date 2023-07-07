@@ -19,7 +19,7 @@ class Object
 end
 
 class GoogleSheets
-  VERSION = "0.8.1"
+  VERSION = "0.8.2"
 
   attr_accessor :api
 
