@@ -11,5 +11,8 @@ Gem::Specification.new do |s|
   s.license     = "MIT"
   s.files       = `git ls-files`.split("\n") - %w[.gitignore]
   s.executables = `cd bin && git ls-files .`.split("\n")
+  s.add_runtime_dependency "censive", "~> 1.1"
   s.add_runtime_dependency "google-api-client", "~> 0.53.0"
+  s.add_runtime_dependency "googleauth", "~> 1.11"
+  s.add_runtime_dependency "pstore", "~> 0.1.3"
 end
