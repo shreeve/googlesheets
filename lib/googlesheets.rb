@@ -2,7 +2,7 @@
 # googlesheets - Ruby gem for Google Sheets
 #
 # Author: Steve Shreeve (steve.shreeve@gmail.com)
-#   Date: March 16, 2023
+#   Date: March 11, 2025
 # ============================================================================
 
 # See https://googleapis.dev/ruby/google-api-client/latest/Google/Apis/SheetsV4/Request.html
@@ -19,7 +19,7 @@ class Object
 end
 
 class GoogleSheets
-  VERSION = "0.8.4"
+  VERSION = "0.9.0"
 
   attr_accessor :api
 
@@ -36,6 +36,16 @@ class GoogleSheets
       abort "unable to file Google API credentials" unless File.exist?(base)
       @json = File.join(base, @json)
       @yaml = File.join(base, @yaml)
+    end
+
+    if File.exist?(@yaml)
+      begin
+        yaml = YAML.load_file(@yaml)
+        till = JSON[yaml["default"]]["expiration_time_millis"] / 1000
+        till > Time.now.to_i or raise
+      rescue
+        File.delete(@yaml)
+      end
     end
 
     if opts[:debug] == true
